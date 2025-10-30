@@ -4,11 +4,12 @@ import {
   addQueue,
   createTenant,
   addTopic,
-  addSqlDatabase
+  addSqlDatabase,
+  addUrl
 } from '~/src/api/platform-state-lambda/create-tenant'
 import { environments } from '~/src/config/environments'
 
-const defaultTenants = [
+const defaultEntities = [
   {
     name: 'cdp-portal-frontend',
     zone: 'public',
@@ -17,7 +18,30 @@ const defaultTenants = [
     service_code: 'CDP',
     team: teams[0].slug,
     type: 'Microservice',
-    subtype: 'Frontend'
+    subtype: 'Frontend',
+    urls: [
+      {
+        url: 'portal.cdp-int.defra.cloud',
+        shuttered: false,
+        enabled: false,
+        type: 'vanity',
+        env: 'management'
+      },
+      {
+        url: 'portal-test.cdp-int.defra.cloud',
+        shuttered: true,
+        enabled: false,
+        type: 'vanity',
+        env: 'infra-dev'
+      },
+      {
+        url: 'portal.defra.gov.uk',
+        shuttered: false,
+        enabled: true,
+        type: 'vanity',
+        env: 'management'
+      }
+    ]
   },
   {
     name: 'cdp-portal-backend',
@@ -59,6 +83,22 @@ const defaultTenants = [
         fifo_topic: 'true',
         content_based_deduplication: false
       }
+    ],
+    urls: [
+      {
+        url: 'portal-backend.integration.api.defra.gov.uk',
+        shuttered: false,
+        enabled: false,
+        type: 'vanity',
+        env: 'ext-test'
+      },
+      {
+        url: 'portal-backend.defra.gov.uk',
+        shuttered: false,
+        enabled: true,
+        type: 'vanity',
+        env: 'management'
+      }
     ]
   },
   {
@@ -96,7 +136,23 @@ const defaultTenants = [
     service_code: 'CDP',
     team: teams[4].slug,
     type: 'Microservice',
-    subtype: 'Backend'
+    subtype: 'Backend',
+    urls: [
+      {
+        url: 'tenant-backend.integration.api.defra.gov.uk',
+        shuttered: false,
+        enabled: false,
+        type: 'internal',
+        env: 'ext-test'
+      },
+      {
+        url: 'tenant-backend.api.defra.gov.uk',
+        shuttered: false,
+        enabled: true,
+        type: 'vanity',
+        env: 'prod'
+      }
+    ]
   },
   {
     name: 'cdp-env-test-suite',
@@ -111,30 +167,36 @@ const defaultTenants = [
 ]
 
 function initPlatformState() {
-  for (const config of defaultTenants) {
-    createTenant(config.name, config)
+  for (const entityConfig of defaultEntities) {
+    createTenant(entityConfig.name, entityConfig)
 
-    if (config.sqs_queues) {
-      config.sqs_queues.forEach((queue) =>
-        addQueue(config.name, environments, queue)
+    if (entityConfig.sqs_queues) {
+      entityConfig.sqs_queues.forEach((queue) =>
+        addQueue(entityConfig.name, environments, queue)
       )
     }
 
-    if (config.sns_topics) {
-      config.sns_topics.forEach((topic) =>
-        addTopic(config.name, environments, topic)
+    if (entityConfig.sns_topics) {
+      entityConfig.sns_topics.forEach((topic) =>
+        addTopic(entityConfig.name, environments, topic)
       )
     }
 
-    if (config.s3_buckets) {
-      config.s3_buckets.forEach((bucket) =>
+    if (entityConfig.s3_buckets) {
+      entityConfig.s3_buckets.forEach((bucket) =>
         // TODO: bucket names are unique per env, for now we just send the management one
-        addBucket(config.name, ['management'], bucket)
+        addBucket(entityConfig.name, ['management'], bucket)
       )
     }
 
-    if (config.rds_aurora_postgres) {
-      addSqlDatabase(config.name, environments)
+    if (entityConfig.urls) {
+      for (const urlConfig of entityConfig.urls) {
+        addUrl(entityConfig.name, urlConfig)
+      }
+    }
+
+    if (entityConfig.rds_aurora_postgres) {
+      addSqlDatabase(entityConfig.name, environments)
     }
   }
 }

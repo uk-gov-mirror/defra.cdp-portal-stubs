@@ -247,6 +247,7 @@ const ecrRepos = {
   }
 }
 
+// @deprecated vanity urls are now managed via platform state
 const vanityUrls = {
   management: [
     {

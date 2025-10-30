@@ -22,7 +22,38 @@ function createTenant(name, config) {
   }
 }
 
-// TODO: add function to toggle shutter state of a given service/url
+/**
+ * @typedef {Object} UrlConfig
+ * @property {string} url
+ * @property {boolean} shuttered
+ * @property {boolean} enabled
+ * @property {('internal'|'vanity')} type
+ * @property {string} env
+ *
+ * @param {string} name
+ * @param {UrlConfig} urlConfig
+ */
+function addUrl(name, urlConfig) {
+  const { env } = urlConfig
+
+  if (!platformState[env][name]) {
+    logger.warn(`Service not found ${name} in ${env}`)
+    return
+  }
+
+  const existingUrls = platformState[env][name].tenant.urls ?? {}
+
+  platformState[env][name].tenant.urls = {
+    ...existingUrls,
+    [urlConfig.url]: {
+      type: urlConfig.type,
+      enabled: urlConfig.enabled,
+      shuttered: urlConfig.shuttered
+    }
+  }
+
+  logger.info(`Added url ${urlConfig.url} to ${env}/${name}`)
+}
 
 /**
  *
@@ -260,4 +291,4 @@ function createECR(name) {
   }
 }
 
-export { createTenant, addQueue, addTopic, addBucket, addSqlDatabase }
+export { createTenant, addQueue, addUrl, addTopic, addBucket, addSqlDatabase }
